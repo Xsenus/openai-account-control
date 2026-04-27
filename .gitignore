@@ -1,0 +1,65 @@
+.env
+.env.*
+!.env.example
+!.env.production.example
+
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+data/
+storage_state.json
+*.sqlite
+*.sqlite3
+*.db
+
+frontend/node_modules/
+frontend/dist/
+backend/app/static/
+
+.DS_Store
+Thumbs.db
+*.log
+
+.idea/
+.vscode/
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Node
+node_modules/
+dist/
+coverage/
+
+# App data
+data/
+*.sqlite3
+*.db
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Playwright
+playwright-report/
+test-results/

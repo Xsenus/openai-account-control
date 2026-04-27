@@ -1,0 +1,76 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      VPS_PORT: ${{ secrets.VPS_PORT || '22' }}
+      DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH || '/opt/openai-account-control' }}
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      VPS_ENV_FILE: ${{ secrets.VPS_ENV_FILE }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+      - name: Validate secrets
+        run: |
+          test -n "$VPS_HOST"
+          test -n "$VPS_USER"
+          test -n "$VPS_SSH_KEY"
+
+      - name: Configure SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "$VPS_PORT" "$VPS_HOST" >> ~/.ssh/known_hosts
+
+      - name: Upload project
+        run: |
+          tar \
+            --exclude='.git' \
+            --exclude='.env' \
+            --exclude='data' \
+            --exclude='.venv' \
+            --exclude='frontend/node_modules' \
+            --exclude='backend/app/static' \
+            -czf /tmp/openai-account-control.tar.gz .
+
+          ssh -i ~/.ssh/deploy_key -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "mkdir -p '$DEPLOY_PATH'"
+          scp -i ~/.ssh/deploy_key -P "$VPS_PORT" /tmp/openai-account-control.tar.gz "$VPS_USER@$VPS_HOST:$DEPLOY_PATH/release.tar.gz"
+
+          if [ -n "$VPS_ENV_FILE" ]; then
+            printf '%s\n' "$VPS_ENV_FILE" > /tmp/openai-account-control.env
+            scp -i ~/.ssh/deploy_key -P "$VPS_PORT" /tmp/openai-account-control.env "$VPS_USER@$VPS_HOST:$DEPLOY_PATH/.env"
+          fi
+
+      - name: Deploy
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "
+            set -euo pipefail
+            cd '$DEPLOY_PATH'
+            tar -xzf release.tar.gz
+            rm release.tar.gz
+            bash scripts/deploy-vps-native.sh
+          "
