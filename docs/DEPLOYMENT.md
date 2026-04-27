@@ -121,12 +121,14 @@ sudo bash scripts/deploy-vps-native.sh
 
 ```bash
 systemctl status openai-account-control --no-pager
-curl http://127.0.0.1:8000/api/health
+curl http://127.0.0.1:18080/api/health
 ```
 
 ## Reverse proxy и HTTPS
 
-Приложение должно слушать `127.0.0.1:8000`, а внешний доступ лучше делать через FASTPANEL или reverse proxy на этот локальный адрес.
+Постоянный вариант: приложение слушает `127.0.0.1:18080`, а внешний доступ идет через FASTPANEL или reverse proxy на этот локальный адрес.
+
+Временный вариант для проверки по IP: можно выставить `APP_HOST=0.0.0.0`, `APP_PORT=18080` и открыть панель как `http://<VPS-IP>:18080`. После настройки домена лучше вернуть `APP_HOST=127.0.0.1` и закрыть прямой доступ к порту.
 
 При HTTPS:
 
@@ -138,7 +140,7 @@ SESSION_COOKIE_SECURE=true
 Без HTTPS:
 
 ```env
-FRONTEND_PUBLIC_URL=http://your-domain-or-ip:8000
+FRONTEND_PUBLIC_URL=http://your-domain-or-ip:18080
 SESSION_COOKIE_SECURE=false
 ```
 
